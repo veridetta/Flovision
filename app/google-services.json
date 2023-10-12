@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1011504526142",
+    "project_id": "flovision",
+    "storage_bucket": "flovision.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011504526142:android:ea9192e32d15d22c48326f",
+        "android_client_info": {
+          "package_name": "com.vr.flovision"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPRoSFEKfkBCNNpK5wgR52fRiIIAt7i4w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
