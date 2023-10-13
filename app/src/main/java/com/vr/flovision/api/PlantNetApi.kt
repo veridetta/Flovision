@@ -1,18 +1,21 @@
 package com.vr.flovision.api
 
-import com.google.gson.Gson
+import com.vr.flovision.helper.ApiInstance
 import com.vr.flovision.model.PlantNetModel
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.MediaType
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody
-import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
-import java.io.IOException
 
 fun sendPostRequest(
     url: String,
@@ -20,37 +23,33 @@ fun sendPostRequest(
     apiKey: String,
     imageFieldName: String = "images",
     imageMediaType: String = "image/jpeg"
-): PlantNetModel? {
+): Deferred<Response<PlantNetModel>> {
     val file = File(imageFilePath)
 
-    val client = OkHttpClient()
+    val logging = HttpLoggingInterceptor()
+    logging.level = HttpLoggingInterceptor.Level.BODY
 
-    val requestBody = MultipartBody.Builder()
-        .setType(MultipartBody.FORM)
-        .addFormDataPart(
-            imageFieldName,
-            file.name,
-            RequestBody.create(imageMediaType.toMediaTypeOrNull(), file)
-        )
+    val client = OkHttpClient.Builder()
+        .addInterceptor(logging)
         .build()
 
-    val request = Request.Builder()
-        .url(url)
-        .addHeader("accept", "application/json")
-        .addHeader("Content-Type", "multipart/form-data")
-        .addHeader("api-key", apiKey)
-        .post(requestBody)
+    val retrofit = Retrofit.Builder()
+        .baseUrl(url)
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(client)
         .build()
 
-    val response = client.newCall(request).execute()
+    val service = retrofit.create(ApiInstance::class.java)
 
-    if (response.isSuccessful) {
-        val responseBody = response.body
-        if (responseBody != null) {
-            val responseString = responseBody.string()
-            return Gson().fromJson(responseString, PlantNetModel::class.java)
-        }
+    val requestFile = RequestBody.create(imageMediaType.toMediaTypeOrNull(), file)
+    val imagePart = MultipartBody.Part.createFormData(imageFieldName, file.name, requestFile)
+
+    return GlobalScope.async(Dispatchers.IO) {
+        try {
+            val response = service.sendImage(false, false, "id", apiKey, imagePart).execute()
+            response
+        } catch (e: Exception) {
+            null
+        }!!
     }
-
-    return null
 }

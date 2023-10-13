@@ -42,7 +42,7 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var progressDialog: ProgressDialog
     val TAG = "LOAD DATA"
     private val plantList: MutableList<PlantModel> = mutableListOf()
-    val mFirestore = FirebaseFirestore.getInstance()
+    lateinit var mFirestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,10 +54,12 @@ class AdminActivity : AppCompatActivity() {
         initClick()
     }
     private fun initView(){
+        mFirestore = FirebaseFirestore.getInstance()
         recyclerView = findViewById(R.id.rcMateri)
         contentView = findViewById(R.id.contentView)
         searchLayout = findViewById(R.id.searchLayout)
         btnCari = findViewById(R.id.btnCari)
+        btnTambah = findViewById(R.id.btnTambah)
         btnLogout = findViewById(R.id.btnLogout)
         progressDialog = ProgressDialog(this)
         progressDialog.setMessage("Loading...")
@@ -95,9 +97,9 @@ class AdminActivity : AppCompatActivity() {
         })
     }
     private fun readData() {
+        progressDialog.show()
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                progressDialog.show()
                 val result = mFirestore.collection("plant").get().await()
                 val plants = mutableListOf<PlantModel>()
                 for (document in result) {
@@ -120,9 +122,11 @@ class AdminActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun editBarang(plant: PlantModel) {
         //intent ke homeActivity fragment add
-        val intent = Intent(this, AdminActivity::class.java)
+        val intent = Intent(this, AddActivity::class.java)
+        intent.putExtra("type", "edit")
         intent.putExtra("docId", plant.docId)
         intent.putExtra("plantNetName", plant.plantNetName)
         intent.putExtra("gambar", plant.gambar)

@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/contentView"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <!-- Background image full width and height -->
+            <ImageView
+                android:id="@+id/imgCover"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_180sdp"
+                android:src="@color/primary"
+                android:scaleType="centerCrop" />
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_80sdp"
+                android:background="@android:color/transparent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <!-- Card view with white background -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/_55sdp"
+
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:backgroundTint="@color/secondary"
+                        android:background="@drawable/bg_top_rounded">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@drawable/bg_top_rounded"
+                            android:backgroundTint="@color/secondary">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="@dimen/_14sdp">
+                                <TextView
+                                    android:id="@+id/tvLatin"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Latin"
+                                    android:textColor="@color/primary"
+                                    android:paddingTop="@dimen/_20sdp"
+                                    android:textSize="@dimen/_25sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvNama"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Nama"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_15sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_11sdp"
+                                android:background="@color/primary"/>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@color/white"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:paddingTop="@dimen/_10sdp"
+                                android:paddingBottom="@dimen/_10sdp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Klasifikasi Ilmiah"
+                                    android:drawableStart="@drawable/ic_klasifikasi"
+                                    android:drawableTint="@color/primary"
+                                    android:drawablePadding="@dimen/_6sdp"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_15sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="@dimen/_3sdp"
+                                android:backgroundTint="@color/primary_light"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:background="@drawable/bg_rounded"
+                                android:weightSum="2">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Kerajaan :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvKerajaan"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Kerajaan :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="@dimen/_3sdp"
+                                android:backgroundTint="@color/white"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:background="@drawable/bg_rounded"
+                                android:weightSum="2">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Famili :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvFamili"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Kerajaan :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="@dimen/_3sdp"
+                                android:backgroundTint="@color/primary_light"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:background="@drawable/bg_rounded"
+                                android:weightSum="2">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Ordo :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvOrdo"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Kerajaan :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="@dimen/_3sdp"
+                                android:backgroundTint="@color/white"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:background="@drawable/bg_rounded"
+                                android:weightSum="2">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Spesies :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvSpesies"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Kerajaan :"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_11sdp"
+                                android:background="@color/primary"/>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@color/white"
+                                android:paddingLeft="@dimen/_14sdp"
+                                android:paddingRight="@dimen/_14sdp"
+                                android:paddingTop="@dimen/_10sdp"
+                                android:paddingBottom="@dimen/_10sdp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manfaat bagi kesehatan"
+                                    android:drawableStart="@drawable/ic_medic"
+                                    android:drawableTint="@color/primary"
+                                    android:drawablePadding="@dimen/_6sdp"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_15sdp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/tvManfaat"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="@dimen/_8sdp"
+                                    android:text="manfaat bagi kesehatan"
+                                    android:textColor="@color/primary"
+                                    android:textSize="@dimen/_12sdp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_11sdp"
+                                android:background="@color/primary"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </RelativeLayout>
+        </RelativeLayout>
+    </androidx.core.widget.NestedScrollView>
+    <ImageView
+        android:id="@+id/btnBack"
+        android:layout_width="@dimen/_35sdp"
+        android:layout_height="@dimen/_35sdp"
+        android:background="@drawable/bg_circle"
+        android:src="@drawable/ic_back"
+        app:tint="@color/primary"
+        android:layout_marginStart="@dimen/_8sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        android:backgroundTint="@color/white"/>
+    <include layout="@layout/ly_scanning" />
+</RelativeLayout>

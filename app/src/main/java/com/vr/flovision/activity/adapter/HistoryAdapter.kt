@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.vr.flovision.R
@@ -14,12 +15,11 @@ import com.vr.flovision.model.PlantModel
 import java.util.Locale
 
 
-class PlantAdapter(
+class HistoryAdapter(
     private var barangList: MutableList<PlantModel>,
     val context: Context,
-    private val onEditClickListener: (PlantModel) -> Unit,
-    private val onHapusClickListener: (PlantModel) -> Unit,
-) : RecyclerView.Adapter<PlantAdapter.ProductViewHolder>() {
+    private val onViewClickListener: (PlantModel) -> Unit,
+) : RecyclerView.Adapter<HistoryAdapter.ProductViewHolder>() {
     public var filteredBarangList: MutableList<PlantModel> = mutableListOf()
     init {
         filteredBarangList.addAll(barangList)
@@ -51,7 +51,7 @@ class PlantAdapter(
     }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
         val itemView = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_plants, parent, false)
+            .inflate(R.layout.item_history, parent, false)
         return ProductViewHolder(itemView)
     }
 
@@ -65,7 +65,6 @@ class PlantAdapter(
         holder.tvNama.text = currentBarang.nama
         holder.tvNamaLatin.text = currentBarang.latin
         holder.tvKerajaan.text = "Kerajaan " + currentBarang.kerajaan+", Famili "+currentBarang.famili+", Ordo "+currentBarang.ordo+", Spesies "+currentBarang.spesies
-        //atur text manfaat maksimal 3 baris setelah itu ditambahkan titik, dan bisa di togle show less more
         holder.tvManfaat.text = currentBarang.manfaat
         var isExpanded = false
         holder.tvManfaat.setOnClickListener {
@@ -81,8 +80,9 @@ class PlantAdapter(
             .override(270,270).centerCrop()
             .placeholder(R.drawable.no_image)
             .into(holder.imgCover)
-        holder.btnUbah.setOnClickListener { onEditClickListener(currentBarang) }
-        holder.btnHapus.setOnClickListener { onHapusClickListener(currentBarang) }
+        holder.cardView.setOnClickListener {
+            onViewClickListener(currentBarang)
+        }
     }
 
     inner class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -92,7 +92,6 @@ class PlantAdapter(
         val tvManfaat: TextView = itemView.findViewById(R.id.tvManfaat)
         //val showMoreTextView: TextView = itemView.findViewById(R.id.showMoreTextView)
         val imgCover: ImageView = itemView.findViewById(R.id.imgCover)
-        val btnUbah: LinearLayout = itemView.findViewById(R.id.btnUbah)
-        val btnHapus: LinearLayout = itemView.findViewById(R.id.btnHapus)
+        val cardView: CardView = itemView.findViewById(R.id.cardView)
     }
 }

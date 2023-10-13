@@ -56,17 +56,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Manfaat Medic"
-            android:maxLines="3"
-            android:ellipsize="end"
             android:textSize="14sp"
             android:textColor="@android:color/black"
-            android:layout_marginTop="8dp" />
-        <TextView
-            android:id="@+id/showMoreTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Show more"
-            android:visibility="visible" />
+            android:layout_marginTop="8dp"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:clickable="true"
+            android:focusable="true"
+            android:onClick="toggleDescription"/>
 
         <!-- Add more TextViews or ImageViews for additional product details if needed -->
 

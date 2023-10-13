@@ -1,71 +1,81 @@
-package com.vr.flovision
+package com.vr.flovision.activity.user
 
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.media.Image
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
-import com.google.firebase.appcheck.ktx.appCheck
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.ktx.initialize
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
+import com.vr.flovision.MainActivity
+import com.vr.flovision.R
+import com.vr.flovision.activity.adapter.HistoryAdapter
+import com.vr.flovision.activity.adapter.PlantAdapter
 import com.vr.flovision.activity.admin.LoginActivity
-import com.vr.flovision.activity.user.ResultActivity
-import com.vr.flovision.activity.user.TanamanActivity
 import com.vr.flovision.helper.showSnack
+import com.vr.flovision.model.PlantModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-class MainActivity : AppCompatActivity() {
-    lateinit var btnAdmin : ImageView
+class TanamanActivity : AppCompatActivity() {
     lateinit var btnCam : ImageView
-    lateinit var btnScan : LinearLayout
     lateinit var btnGallery : LinearLayout
     lateinit var  btnCamera : LinearLayout
     lateinit var lyAksi : RelativeLayout
-    lateinit var btnTanamanBottom : LinearLayout
-    lateinit var btnTanaman : LinearLayout
+    lateinit var tvJumlah : TextView
+    lateinit var btnHome : LinearLayout
     private val GALLERY_REQUEST_CODE = 1
     private val CAMERA_REQUEST_CODE = 2
     var izin = false
+    private lateinit var plantAdapter: HistoryAdapter
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var progressDialog: ProgressDialog
+    val TAG = "LOAD DATA"
+    private val plantList: MutableList<PlantModel> = mutableListOf()
+    val mFirestore = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        Firebase.initialize(this)
-        Firebase.appCheck.installAppCheckProviderFactory(
-            DebugAppCheckProviderFactory.getInstance(),
-        )
+        setContentView(R.layout.activity_tanaman)
         initView()
+        initRc()
+        initData()
         initClick()
     }
     private fun initView(){
-        btnAdmin = findViewById(R.id.btnAdmin)
         btnCam = findViewById(R.id.btnCam)
-        btnScan = findViewById(R.id.btnScan)
-        btnTanamanBottom = findViewById(R.id.btnTanamanBottom)
-        btnTanaman = findViewById(R.id.btnTanaman)
+        btnHome = findViewById(R.id.btnHome)
         lyAksi = findViewById(R.id.lyAksi)
         btnGallery = findViewById(R.id.btnGallery)
         btnCamera = findViewById(R.id.btnCamera)
+        tvJumlah = findViewById(R.id.tvJumlah)
+        recyclerView = findViewById(R.id.rcPlants)
+        progressDialog = ProgressDialog(this)
+        progressDialog.setMessage("Loading...")
+        progressDialog.setCancelable(false)
     }
 
     private fun initClick(){
-        btnAdmin.setOnClickListener {
-            startActivity(Intent(this, LoginActivity::class.java))
-        }
         btnCam.setOnClickListener {
             // Periksa izin kamera dan penyimpanan eksternal
             if (checkPermissions()) {
@@ -76,21 +86,10 @@ class MainActivity : AppCompatActivity() {
                 requestPermissions()
             }
         }
-        btnScan.setOnClickListener {
-            if (checkPermissions()) {
-                // Izin diberikan, tampilkan aksi untuk memilih gambar
-                lyAksi.visibility = View.VISIBLE
-            } else {
-                // Meminta izin
-                requestPermissions()
-            }
+        btnHome.setOnClickListener {
+            startActivity(Intent(this, MainActivity::class.java))
         }
-        btnTanamanBottom.setOnClickListener {
-            startActivity(Intent(this, TanamanActivity::class.java))
-        }
-        btnTanaman.setOnClickListener {
-            startActivity(Intent(this, TanamanActivity::class.java))
-        }
+
         btnGallery.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             startActivityForResult(intent, GALLERY_REQUEST_CODE)
@@ -135,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                 izin = true
             } else {
                 // Izin ditolak, Anda dapat memberikan pesan atau tindakan lain
-                showSnack(this@MainActivity, "Izin ditolak")
+                showSnack(this@TanamanActivity, "Izin ditolak")
             }
         }
     }
@@ -202,6 +201,66 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
             null
         }
+    }
+    private fun initRc(){
+        recyclerView.apply {
+            setHasFixedSize(true)
+            layoutManager = GridLayoutManager(this@TanamanActivity, 1)
+            // set the custom adapter to the RecyclerView
+            plantAdapter = HistoryAdapter(
+                plantList,
+                this@TanamanActivity,
+                { barang -> clickCard(barang) },
+            )
+        }
+    }
+    private fun initData(){
+        readData()
+        recyclerView.adapter = plantAdapter
+    }
+    private fun readData() {
+        //get uid dari shared preference
+        val sharedPref = getSharedPreferences("user", MODE_PRIVATE)
+        val uid = sharedPref.getString("uid", "")
+        Log.d(TAG, "UID : $uid")
+        if(uid != ""){
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    progressDialog.show()
+                    val result = mFirestore.collection("history").get().await()
+                    val plants = mutableListOf<PlantModel>()
+                    var jum = 0
+                    for (document in result) {
+                        val plant = document.toObject(PlantModel::class.java)
+                        val docId = document.id
+                        plant.docId = docId
+                        plants.add(plant)
+                        Log.d(TAG, "Datanya : ${document.id} => ${document.data}")
+                        jum++
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        plantList.addAll(plants)
+                        plantAdapter.filteredBarangList.addAll(plants)
+                        plantAdapter.notifyDataSetChanged()
+                        progressDialog.dismiss()
+                        tvJumlah.text = "Jumlah ($jum)"
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error getting documents : $e")
+                    progressDialog.dismiss()
+                }
+            }
+        }else{
+            tvJumlah.text = "Tidak ada riwayat"
+            showSnack(this@TanamanActivity, "Silahkan scan terlebih dahulu")
+        }
+    }
+    private fun clickCard(plant: PlantModel) {
+        //intent ke homeActivity fragment add
+        val intent = Intent(this, ResultHistoryActivity::class.java)
+        intent.putExtra("docId", plant.docId)
+        startActivity(intent)
     }
     companion object {
         private const val PERMISSION_REQUEST_CODE = 3

@@ -26,6 +26,7 @@ import com.vr.flovision.helper.showSnack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 class AddActivity : AppCompatActivity() {
@@ -84,6 +85,8 @@ class AddActivity : AppCompatActivity() {
         tvJudul =  findViewById(R.id.tvJudul)
         coverReplace = findViewById(R.id.coverReplace)
         progressDialog = ProgressDialog(this)
+        progressDialog.setMessage("Loading...")
+        progressDialog.setCancelable(false)
     }
     private fun initIntent(){
         type = intent.getStringExtra("type").toString()
@@ -147,19 +150,28 @@ class AddActivity : AppCompatActivity() {
         }else if(manfaat.isEmpty()){
             showSnack(this,"Manfaat tidak boleh kosong")
         }else{
+            progressDialog.show()
             if(type=="edit"){
-                // Kompres dan unggah gambar di latar belakang
-                lifecycleScope.launch(Dispatchers.IO) {
-                    progressDialog.show()
-                    // Kompres dan unggah foto sampul
-                    if (ubahGambar){
+                if (ubahGambar) {
+                    // Kompres dan unggah gambar di latar belakang
+                    lifecycleScope.launch(Dispatchers.IO) {
                         gambar = uploadImage(imageUr)
+                        //dispatcher
+                        withContext(Dispatchers.Main) {
+                            progressDialog.dismiss()
+                            editData()
+                        }
                     }
-                    progressDialog.dismiss()
-                    editData()
                 }
             }else{
-                tambahData()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    gambar = uploadImage(imageUr)
+                    //dispatcher
+                    withContext(Dispatchers.Main) {
+                        progressDialog.dismiss()
+                        tambahData()
+                    }
+                }
             }
         }
     }
@@ -181,7 +193,7 @@ class AddActivity : AppCompatActivity() {
         val compressedBitmap = ImageUtils.compressBitmap(originalBitmap)
         val compressedImageUri = ImageUtils.createTempImageFile(context)
         val outputStream = context.contentResolver.openOutputStream(compressedImageUri)
-        compressedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+        compressedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream!!)
         outputStream?.close()
 
         return compressedImageUri
@@ -233,7 +245,7 @@ class AddActivity : AppCompatActivity() {
             "plantNetName" to plantNetName,
         )
         val db = FirebaseFirestore.getInstance()
-        db.collection("barang")
+        db.collection("plant")
             .document(docId)
             .update(barangData as Map<String, Any>)
             .addOnSuccessListener { documentReference ->
@@ -259,7 +271,8 @@ class AddActivity : AppCompatActivity() {
                     // Ambil URI gambar yang dipilih dari galeri
                     val selectedImageUri = data?.data
                     // Tampilkan gambar yang dipilih ke imageView coverReplace
-                    coverReplace.setImageURI(selectedImageUri)
+                    //coverReplace.setImageURI(selectedImageUri)
+                    Glide.with(this).load(selectedImageUri).into(coverReplace)
                     // Simpan URI gambar ke dalam list untuk penggunaan nanti
                     imageUr = selectedImageUri!!
                     ubahGambar = true
