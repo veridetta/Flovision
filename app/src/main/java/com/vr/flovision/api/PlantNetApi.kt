@@ -1,5 +1,6 @@
 package com.vr.flovision.api
 
+import android.util.Log
 import com.vr.flovision.helper.ApiInstance
 import com.vr.flovision.model.PlantNetModel
 import kotlinx.coroutines.Deferred
@@ -21,10 +22,17 @@ fun sendPostRequest(
     url: String,
     imageFilePath: String,
     apiKey: String,
+    isFile:Boolean,
+    iniFile:File,
     imageFieldName: String = "images",
     imageMediaType: String = "image/jpeg"
-): Deferred<Response<PlantNetModel>> {
-    val file = File(imageFilePath)
+): Deferred<Response<PlantNetModel>?> {
+    val file : File
+    if(isFile){
+        file = iniFile
+    }else{
+        file = File(imageFilePath)
+    }
 
     val logging = HttpLoggingInterceptor()
     logging.level = HttpLoggingInterceptor.Level.BODY
@@ -49,7 +57,8 @@ fun sendPostRequest(
             val response = service.sendImage(false, false, "id", apiKey, imagePart).execute()
             response
         } catch (e: Exception) {
-            null
-        }!!
+            Log.e("Kenapa null", "Error sending POST request: ${e.message}")
+            return@async null
+        }
     }
 }

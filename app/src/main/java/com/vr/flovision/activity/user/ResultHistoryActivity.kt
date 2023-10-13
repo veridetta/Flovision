@@ -1,25 +1,21 @@
 package com.vr.flovision.activity.user
 
 import android.content.Intent
-import android.media.Image
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.speech.tts.TextToSpeech
+import android.util.Log
+import android.view.View
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.google.firebase.firestore.FirebaseFirestore
 import com.vr.flovision.MainActivity
 import com.vr.flovision.R
-import com.vr.flovision.api.sendPostRequest
-import com.vr.flovision.helper.ApiHelper.Companion.API_KEY
-import com.vr.flovision.helper.ApiHelper.Companion.BASE_URL
 import com.vr.flovision.helper.showSnack
 import com.vr.flovision.model.PlantModel
-import com.vr.flovision.model.PlantNetModel
-import java.util.Locale
-import java.util.UUID
 
 class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
     lateinit var contentView: RelativeLayout
@@ -61,6 +57,7 @@ class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  
         btnBack = findViewById(R.id.btnBack)
         lyScan = findViewById(R.id.lyScan)
         imgScan = findViewById(R.id.imgScan)
+        textToSpeech = TextToSpeech(this, this)
         Glide.with(this).load(R.drawable.qr_scan).into(imgScan)
     }
     private fun initIntent(){
@@ -68,7 +65,7 @@ class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  
     }
     private fun initClick(){
         btnBack.setOnClickListener {
-            stopSpeaking()
+
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()
@@ -76,10 +73,12 @@ class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  
     }
     private fun postFB(){
         if (docId != "") {
-            mFirebase.collection("plant").document(docId).get()
+            Log.d("DocId",docId)
+            mFirebase.collection("history").document(docId).get()
                 .addOnSuccessListener { result ->
                     val plant = result.toObject(PlantModel::class.java)
                     if (plant != null) {
+                        lyScan.visibility = View.GONE
                         tvLatin.text = plant.latin
                         tvNama.text = plant.nama
                         tvKerajaan.text = plant.kerajaan
@@ -93,12 +92,25 @@ class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  
                                 "famili ${plant.famili} ordo ${plant.ordo} " +
                                 "spesies ${plant.spesies} dan memiliki manfaat kesehatan ${plant.manfaat}"
                         speakText(text)
+                    }else{
+                        lyScan.visibility = View.GONE
+                        showSnack(this@ResultHistoryActivity, "Data tidak ditemukan")
                     }
                 }
+        }else{
+            lyScan.visibility = View.GONE
+            showSnack(this@ResultHistoryActivity, "Data tidak ditemukan")
         }
     }
     private fun speakText(text: String) {
-        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        val handler = Handler()
+        handler.postDelayed(Runnable {
+            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            if(!textToSpeech.isSpeaking()) {
+                textToSpeech = TextToSpeech(this, this)
+                System.out.println("tts restarted")
+            }
+        }, 3000) // 3 sec
     }
     private fun stopSpeaking() {
         if (textToSpeech.isSpeaking) {
@@ -114,5 +126,9 @@ class ResultHistoryActivity : AppCompatActivity(), TextToSpeech.OnInitListener  
     }
     override fun onInit(status: Int) {
         audioSiap = status == TextToSpeech.SUCCESS
+    }
+    override fun onResume() {
+        super.onResume();
+        textToSpeech = TextToSpeech(this, this)
     }
 }

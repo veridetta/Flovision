@@ -42,6 +42,7 @@ class TanamanActivity : AppCompatActivity() {
     lateinit var btnGallery : LinearLayout
     lateinit var  btnCamera : LinearLayout
     lateinit var lyAksi : RelativeLayout
+    lateinit var tvCancel : TextView
     lateinit var tvJumlah : TextView
     lateinit var btnHome : LinearLayout
     private val GALLERY_REQUEST_CODE = 1
@@ -69,6 +70,7 @@ class TanamanActivity : AppCompatActivity() {
         btnGallery = findViewById(R.id.btnGallery)
         btnCamera = findViewById(R.id.btnCamera)
         tvJumlah = findViewById(R.id.tvJumlah)
+        tvCancel = findViewById(R.id.tvCancel)
         recyclerView = findViewById(R.id.rcPlants)
         progressDialog = ProgressDialog(this)
         progressDialog.setMessage("Loading...")
@@ -89,7 +91,9 @@ class TanamanActivity : AppCompatActivity() {
         btnHome.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java))
         }
-
+        tvCancel.setOnClickListener {
+            lyAksi.visibility = View.GONE
+        }
         btnGallery.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             startActivityForResult(intent, GALLERY_REQUEST_CODE)
@@ -223,10 +227,10 @@ class TanamanActivity : AppCompatActivity() {
         val sharedPref = getSharedPreferences("user", MODE_PRIVATE)
         val uid = sharedPref.getString("uid", "")
         Log.d(TAG, "UID : $uid")
-        if(uid != ""){
+        if (uid != "") {
+            progressDialog.show()
             GlobalScope.launch(Dispatchers.IO) {
                 try {
-                    progressDialog.show()
                     val result = mFirestore.collection("history").get().await()
                     val plants = mutableListOf<PlantModel>()
                     var jum = 0
@@ -247,15 +251,18 @@ class TanamanActivity : AppCompatActivity() {
                         tvJumlah.text = "Jumlah ($jum)"
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error getting documents : $e")
-                    progressDialog.dismiss()
+                    withContext(Dispatchers.Main) {
+                        Log.w(TAG, "Error getting documents : $e")
+                        progressDialog.dismiss()
+                    }
                 }
             }
-        }else{
+        } else {
             tvJumlah.text = "Tidak ada riwayat"
             showSnack(this@TanamanActivity, "Silahkan scan terlebih dahulu")
         }
     }
+
     private fun clickCard(plant: PlantModel) {
         //intent ke homeActivity fragment add
         val intent = Intent(this, ResultHistoryActivity::class.java)

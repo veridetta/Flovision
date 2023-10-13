@@ -4,9 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.media.Image
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
@@ -14,6 +12,8 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
@@ -34,11 +34,17 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnScan : LinearLayout
     lateinit var btnGallery : LinearLayout
     lateinit var  btnCamera : LinearLayout
+    lateinit var  tvCancel : TextView
     lateinit var lyAksi : RelativeLayout
     lateinit var btnTanamanBottom : LinearLayout
     lateinit var btnTanaman : LinearLayout
     private val GALLERY_REQUEST_CODE = 1
     private val CAMERA_REQUEST_CODE = 2
+    private val REQUEST_EXTERNAL_STORAGE = 1
+    private val PERMISSIONS_STORAGE = arrayOf<String>(
+        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+    )
     var izin = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         btnCam = findViewById(R.id.btnCam)
         btnScan = findViewById(R.id.btnScan)
         btnTanamanBottom = findViewById(R.id.btnTanamanBottom)
+        tvCancel = findViewById(R.id.tvCancel)
         btnTanaman = findViewById(R.id.btnTanaman)
         lyAksi = findViewById(R.id.lyAksi)
         btnGallery = findViewById(R.id.btnGallery)
@@ -67,6 +74,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
         }
         btnCam.setOnClickListener {
+            verifyStoragePermissions(this)
             // Periksa izin kamera dan penyimpanan eksternal
             if (checkPermissions()) {
                 // Izin diberikan, tampilkan aksi untuk memilih gambar
@@ -76,7 +84,11 @@ class MainActivity : AppCompatActivity() {
                 requestPermissions()
             }
         }
+        tvCancel.setOnClickListener {
+            lyAksi.visibility = View.GONE
+        }
         btnScan.setOnClickListener {
+            verifyStoragePermissions(this)
             if (checkPermissions()) {
                 // Izin diberikan, tampilkan aksi untuk memilih gambar
                 lyAksi.visibility = View.VISIBLE
@@ -137,6 +149,21 @@ class MainActivity : AppCompatActivity() {
                 // Izin ditolak, Anda dapat memberikan pesan atau tindakan lain
                 showSnack(this@MainActivity, "Izin ditolak")
             }
+        }
+    }
+    fun verifyStoragePermissions(activity: Activity?) {
+        // Check if we have write permission
+        val permission = ActivityCompat.checkSelfPermission(
+            activity!!,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                activity,
+                PERMISSIONS_STORAGE,
+                REQUEST_EXTERNAL_STORAGE
+            )
         }
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
