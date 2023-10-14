@@ -63,7 +63,7 @@ class PlantAdapter(
         val currentBarang = filteredBarangList[position]
 
         holder.tvNama.text = currentBarang.nama
-        holder.tvNamaLatin.text = currentBarang.latin
+        holder.tvNamaLatin.text = " "+currentBarang.latin
         holder.tvKerajaan.text = "Kerajaan " + currentBarang.kerajaan+", Famili "+currentBarang.famili+", Ordo "+currentBarang.ordo+", Spesies "+currentBarang.spesies
         //atur text manfaat maksimal 3 baris setelah itu ditambahkan titik, dan bisa di togle show less more
         holder.tvManfaat.text = currentBarang.manfaat

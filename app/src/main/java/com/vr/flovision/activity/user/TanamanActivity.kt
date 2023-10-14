@@ -36,6 +36,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class TanamanActivity : AppCompatActivity() {
     lateinit var btnCam : ImageView
@@ -163,16 +166,21 @@ class TanamanActivity : AppCompatActivity() {
                 }
                 CAMERA_REQUEST_CODE -> {
                     val imageBitmap = data?.extras?.get("data") as Bitmap
-
-                    // Simpan gambar dari kamera ke penyimpanan
-                    val imageFilePath = saveImageFromBitmap(imageBitmap)
-
-                    if (imageFilePath != null) {
-                        val intent = Intent(this, ResultActivity::class.java)
-                        intent.putExtra("imageFilePath", imageFilePath)
-                        startActivity(intent)
-                    } else {
-                        println("Failed to save the image.")
+                    // Setelah operasi penyimpanan selesai, lanjutkan dengan operasi selanjutnya di UI thread
+                    GlobalScope.launch(Dispatchers.IO) {
+                        val imageFilePath = saveImageFromBitmap(imageBitmap)
+                        // Setelah operasi penyimpanan selesai, lanjutkan dengan operasi selanjutnya di UI thread
+                        withContext(Dispatchers.Main) {
+                            if (imageFilePath != "") {
+                                val intent = Intent(this@TanamanActivity, ResultActivity::class.java)
+                                intent.putExtra("imageFilePath", imageFilePath)
+                                intent.putExtra("isCamera", false)
+                                Log.d("imageFilePath", imageFilePath)
+                                startActivity(intent)
+                            } else {
+                                println("Failed to save the image.")
+                            }
+                        }
                     }
                 }
             }
@@ -191,20 +199,46 @@ class TanamanActivity : AppCompatActivity() {
     }
 
     // Fungsi untuk menyimpan gambar dari kamera ke penyimpanan
-    private fun saveImageFromBitmap(bitmap: Bitmap): String? {
-        val imageFileName = "image_${System.currentTimeMillis()}.jpg"
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val imageFile = File(storageDir, imageFileName)
+    private fun saveImageFromBitmap(bitmap: Bitmap): String {
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.US).format(Date())
 
-        return try {
-            val outputStream = FileOutputStream(imageFile)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-            outputStream.close()
-            imageFile.absolutePath
+        // Direktori DCIM/Pictures
+        val dcimDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+        val picturesDirectory = File(dcimDirectory, "Screenshots")
+
+        // Membuat direktori jika belum ada
+        if (!picturesDirectory.exists()) {
+            picturesDirectory.mkdirs()
+        }
+
+        // Membuat file gambar
+        val photoFile = File(
+            picturesDirectory,
+            "IMG_$timeStamp.jpg"
+        )
+
+        lateinit var ret : String
+
+        try {
+            val fos = photoFile.outputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+            fos.close()
+
+            // Menambahkan gambar ke galeri
+            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            mediaScanIntent.data = Uri.fromFile(photoFile)
+            sendBroadcast(mediaScanIntent)
+
+            showSnack(this, "Gambar berhasil disimpan di ${photoFile}")
+            Log.d("Gambar berhasil disimpan di ${photoFile}", "Gambar berhasil disimpan di ${photoFile}")
+            ret = photoFile.absolutePath
+
         } catch (e: IOException) {
             e.printStackTrace()
-            null
+            ret = ""
         }
+
+        return ret
     }
     private fun initRc(){
         recyclerView.apply {

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.Image
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
@@ -18,6 +19,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.bumptech.glide.Glide
 import com.google.firebase.firestore.FirebaseFirestore
@@ -25,6 +27,7 @@ import com.google.gson.Gson
 import com.vr.flovision.MainActivity
 import com.vr.flovision.R
 import com.vr.flovision.api.sendPostRequest
+import com.vr.flovision.api.sendPostRequestDetail
 import com.vr.flovision.helper.ApiConstant.baseUrl
 import com.vr.flovision.helper.ApiHelper.Companion.API_KEY
 import com.vr.flovision.helper.ApiHelper.Companion.BASE_URL
@@ -33,6 +36,7 @@ import com.vr.flovision.helper.showSnack
 import com.vr.flovision.model.PlantModel
 import com.vr.flovision.model.PlantNetModel
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -70,6 +74,7 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
     var audioSiap = false
     val mFirebase = FirebaseFirestore.getInstance()
     val REQUEST_CODE = 100
+    var isCamera = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_result)
@@ -80,7 +85,7 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
             showSnack(this, "Izin akses penyimpanan dibutuhkan")
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), REQUEST_CODE)
         } else {
-            postFB()
+            postFBDetail()
         }
 
     }
@@ -102,6 +107,7 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
     }
     private fun initIntent(){
         imageFilePath = intent.getStringExtra("imageFilePath").toString()
+        isCamera = intent.getBooleanExtra("isCamera",false)
     }
     private fun initClick(){
         btnBack.setOnClickListener {
@@ -110,12 +116,14 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
             finish()
         }
     }
+
     private fun postFB() {
         if (imageFilePath != "") {
             Log.d(TAG, "imageFilePath: $imageFilePath")
+
             GlobalScope.launch(Dispatchers.IO) {
                 // Kirim gambar ke server
-                val responseDeferred = sendPostRequest(baseUrl, imageFilePath, API_KEY, false, File(imageFilePath))
+                val responseDeferred = sendPostRequest(this@ResultActivity,baseUrl, imageFilePath, API_KEY, false)
                 val response = responseDeferred.await()
                 withContext(Dispatchers.Main) {
                     if (response != null) {
@@ -141,7 +149,10 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
                                                 if(result.isEmpty){
                                                     lyScan.visibility = View.GONE
                                                     showSnack(this@ResultActivity, "Tanaman tidak ditemukan")
-                                                    finish()
+                                                    //delay 0,5 detik
+                                                    Handler().postDelayed({
+                                                        finish()
+                                                    }, 500)
                                                 }else{
                                                     for (document in result) {
                                                         lyScan.visibility = View.GONE
@@ -196,6 +207,103 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
             }
         }
     }
+
+    private fun postFBDetail() {
+        if (imageFilePath != "") {
+            Log.d(TAG, "imageFilePath: $imageFilePath")
+
+            GlobalScope.launch(Dispatchers.IO) {
+                // Kirim gambar ke server
+                val responseDeferred = sendPostRequestDetail(this@ResultActivity, baseUrl, imageFilePath, API_KEY, false)
+                val response = responseDeferred.await()
+                withContext(Dispatchers.Main) {
+                    if (response != null) {
+                        if (response.isSuccessful) {
+                            val responseBody = response.body()
+                            if (responseBody != null) {
+                                // Parse JSON response
+                                val responseModel = responseBody // Sesuaikan dengan model yang benar
+
+                                if (responseModel != null) {
+                                    // Tanggapan sukses, lakukan sesuatu dengan respons
+                                    // Misalnya, tampilkan informasi dari respons
+                                    println("Bahasa: ${responseModel.language}")
+                                    println("Tanaman Terbaik: ${responseModel.bestMatch}")
+
+                                    var dataFound = false // Variabel untuk menandai apakah data sudah ditemukan
+
+                                    // Loop di bagian resultsnya, jika data Firebase sudah ditemukan, stop looping
+                                    for (result in responseModel.results) {
+                                        val plantNetName = "${result.species.scientificNameWithoutAuthor} ${result.species.scientificNameAuthorship}"
+                                        if (plantNetName != "") {
+                                            // Mencari data tanaman di Firebase Firestore berdasarkan nama ilmiah
+                                            mFirebase.collection("plant")
+                                                .whereEqualTo("plantNetName", plantNetName)
+                                                .get()
+                                                .addOnSuccessListener { firebaseResult ->
+                                                    if (!firebaseResult.isEmpty) {
+                                                        dataFound = true // Set variabel dataFound menjadi true
+                                                        for (document in firebaseResult) {
+                                                            lyScan.visibility = View.GONE
+                                                            tvLatin.text = document.data["latin"].toString()
+                                                            tvNama.text = document.data["nama"].toString()
+                                                            tvKerajaan.text =
+                                                                document.data["kerajaan"].toString()
+                                                            tvFamili.text =
+                                                                document.data["famili"].toString()
+                                                            tvOrdo.text = document.data["ordo"].toString()
+                                                            tvSpesies.text =
+                                                                document.data["spesies"].toString()
+                                                            tvManfaat.text =
+                                                                document.data["manfaat"].toString()
+                                                            Glide.with(this@ResultActivity)
+                                                                .load(document.data["gambar"].toString())
+                                                                .into(imgCover)
+                                                            val plant =
+                                                                document.toObject(PlantModel::class.java)
+                                                            val docId = document.id
+                                                            plant.docId = docId
+                                                            saveToHistory(plant)
+                                                            //siapkan semua data untuk dibuat speaktext
+                                                            var text =
+                                                                "Hasil Scan menghasilkan tanaman dengan nama latin ${document.data["latin"].toString()} " +
+                                                                        "dan nama lokal ${document.data["nama"].toString()} dengan kerajaan ${document.data["kerajaan"].toString()} " +
+                                                                        "famili ${document.data["famili"].toString()} ordo ${document.data["ordo"].toString()} " +
+                                                                        "spesies ${document.data["spesies"].toString()} dan memiliki manfaat kesehatan ${document.data["manfaat"].toString()}"
+                                                            speakText(text)
+                                                        }
+                                                    }
+                                                }
+
+                                            if (dataFound) {
+                                                break // Hentikan loop jika data sudah ditemukan
+                                            }
+                                        }
+                                    }
+
+                                    if (!dataFound) {
+                                        //showSnack(this@ResultActivity, "Tanaman tidak ditemukan")
+                                    }
+                                    println("Versi: ${responseModel.version}")
+                                } else {
+                                    showSnack(this@ResultActivity, "Tidak dapat mengenali tanaman")
+                                }
+                            }
+                        } else {
+                            // Log error response
+                            println("POST Error Response: ${response.errorBody().toString()}")
+                            // Tanggapan gagal
+                            showSnack(this@ResultActivity, "Gagal melakukan permintaan jaringan")
+                        }
+                    } else {
+                        // Log error
+                        println("POST Error: respons null ini?")
+                    }
+                }
+            }
+        }
+    }
+
 
     private fun parsePlantNetModel(responseString: String): PlantNetModel? {
         // Parsing respons yang diharapkan
@@ -267,7 +375,7 @@ class ResultActivity : AppCompatActivity(), TextToSpeech.OnInitListener  {
             REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     showSnack(this, "Izin akses penyimpanan diberikan")
-                    postFB()
+                    postFBDetail()
                 } else {
                     showSnack(this, "Izin akses penyimpanan ditolak")
                 }

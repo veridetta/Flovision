@@ -1,21 +1,26 @@
 package com.vr.flovision
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.ktx.appCheck
 import com.google.firebase.ktx.Firebase
@@ -24,9 +29,16 @@ import com.vr.flovision.activity.admin.LoginActivity
 import com.vr.flovision.activity.user.ResultActivity
 import com.vr.flovision.activity.user.TanamanActivity
 import com.vr.flovision.helper.showSnack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     lateinit var btnAdmin : ImageView
@@ -111,6 +123,8 @@ class MainActivity : AppCompatActivity() {
 
         btnCamera.setOnClickListener {
             val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            //gambar dari kamera bukan video kualitas HD
+            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)
             startActivityForResult(intent, CAMERA_REQUEST_CODE)
             lyAksi.visibility = View.GONE
         }
@@ -169,14 +183,14 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (resultCode == Activity.RESULT_OK) {
+        if (resultCode == RESULT_OK) {
             when (requestCode) {
                 GALLERY_REQUEST_CODE -> {
                     val selectedImage = data?.data
                     //Glide.with(this).load(selectedImage).into(imageView)
-
+                    Log.d("selectedImage", selectedImage.toString())
                     val imageFilePath = getImageFilePath(selectedImage) // Mendapatkan jalur file gambar dari URI
-
+                    Log.d("imageFilePath", imageFilePath.toString())
                     if (imageFilePath != null) {
                         val intent = Intent(this, ResultActivity::class.java)
                         intent.putExtra("imageFilePath", imageFilePath)
@@ -187,16 +201,20 @@ class MainActivity : AppCompatActivity() {
                 }
                 CAMERA_REQUEST_CODE -> {
                     val imageBitmap = data?.extras?.get("data") as Bitmap
-
-                    // Simpan gambar dari kamera ke penyimpanan
-                    val imageFilePath = saveImageFromBitmap(imageBitmap)
-
-                    if (imageFilePath != null) {
-                        val intent = Intent(this, ResultActivity::class.java)
-                        intent.putExtra("imageFilePath", imageFilePath)
-                        startActivity(intent)
-                    } else {
-                        println("Failed to save the image.")
+                    GlobalScope.launch(Dispatchers.IO) {
+                        val imageFilePath = saveImageFromBitmap(imageBitmap)
+                        // Setelah operasi penyimpanan selesai, lanjutkan dengan operasi selanjutnya di UI thread
+                        withContext(Dispatchers.Main) {
+                            if (imageFilePath != "") {
+                                val intent = Intent(this@MainActivity, ResultActivity::class.java)
+                                intent.putExtra("imageFilePath", imageFilePath)
+                                intent.putExtra("isCamera", false)
+                                Log.d("imageFilePath", imageFilePath)
+                                startActivity(intent)
+                            } else {
+                                println("Failed to save the image.")
+                            }
+                        }
                     }
                 }
             }
@@ -215,20 +233,46 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Fungsi untuk menyimpan gambar dari kamera ke penyimpanan
-    private fun saveImageFromBitmap(bitmap: Bitmap): String? {
-        val imageFileName = "image_${System.currentTimeMillis()}.jpg"
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val imageFile = File(storageDir, imageFileName)
+    private fun saveImageFromBitmap(bitmap: Bitmap): String {
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.US).format(Date())
 
-        return try {
-            val outputStream = FileOutputStream(imageFile)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-            outputStream.close()
-            imageFile.absolutePath
+        // Direktori DCIM/Pictures
+        val dcimDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+        val picturesDirectory = File(dcimDirectory, "Screenshots")
+
+        // Membuat direktori jika belum ada
+        if (!picturesDirectory.exists()) {
+            picturesDirectory.mkdirs()
+        }
+
+        // Membuat file gambar
+        val photoFile = File(
+            picturesDirectory,
+            "IMG_$timeStamp.jpg"
+        )
+
+        lateinit var ret : String
+
+        try {
+            val fos = photoFile.outputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+            fos.close()
+
+            // Menambahkan gambar ke galeri
+            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            mediaScanIntent.data = Uri.fromFile(photoFile)
+            sendBroadcast(mediaScanIntent)
+
+            showSnack(this, "Gambar berhasil disimpan di ${photoFile}")
+            Log.d("Gambar berhasil disimpan di ${photoFile}", "Gambar berhasil disimpan di ${photoFile}")
+            ret = photoFile.absolutePath
+
         } catch (e: IOException) {
             e.printStackTrace()
-            null
+            ret = ""
         }
+
+        return ret
     }
     companion object {
         private const val PERMISSION_REQUEST_CODE = 3

@@ -162,6 +162,8 @@ class AddActivity : AppCompatActivity() {
                             editData()
                         }
                     }
+                }else{
+                    editData()
                 }
             }else{
                 lifecycleScope.launch(Dispatchers.IO) {
